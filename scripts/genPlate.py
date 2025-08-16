@@ -3,13 +3,12 @@ import PIL
 from PIL import ImageFont
 from PIL import Image
 from PIL import ImageDraw
-import cv2;
-import numpy as np;
-import os;
+import cv2
+import numpy as np
+import os
 from math import *
 
 import argparse
-
 
 # font = ImageFont.truetype("Arial-Bold.ttf",14)
 
@@ -18,101 +17,84 @@ index = {"京": 0, "沪": 1, "津": 2, "渝": 3, "冀": 4, "晋": 5, "蒙": 6, "
          "藏": 25, "陕": 26, "甘": 27, "青": 28, "宁": 29, "新": 30, "0": 31, "1": 32, "2": 33, "3": 34, "4": 35, "5": 36,
          "6": 37, "7": 38, "8": 39, "9": 40, "A": 41, "B": 42, "C": 43, "D": 44, "E": 45, "F": 46, "G": 47, "H": 48,
          "J": 49, "K": 50, "L": 51, "M": 52, "N": 53, "P": 54, "Q": 55, "R": 56, "S": 57, "T": 58, "U": 59, "V": 60,
-         "W": 61, "X": 62, "Y": 63, "Z": 64};
+         "W": 61, "X": 62, "Y": 63, "Z": 64}
 
 chars = ["京", "沪", "津", "渝", "冀", "晋", "蒙", "辽", "吉", "黑", "苏", "浙", "皖", "闽", "赣", "鲁", "豫", "鄂", "湘", "粤", "桂",
-             "琼", "川", "贵", "云", "藏", "陕", "甘", "青", "宁", "新", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A",
-             "B", "C", "D", "E", "F", "G", "H", "J", "K", "L", "M", "N", "P", "Q", "R", "S", "T", "U", "V", "W", "X",
-             "Y", "Z"
-             ];
+         "琼", "川", "贵", "云", "藏", "陕", "甘", "青", "宁", "新", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A",
+         "B", "C", "D", "E", "F", "G", "H", "J", "K", "L", "M", "N", "P", "Q", "R", "S", "T", "U", "V", "W", "X",
+         "Y", "Z"]
 
-def GenCh(f,val):
-    img=Image.new("RGB", (45,70),(255,255,255))
+def GenCh(f, val):
+    img = Image.new("RGB", (45, 70), (255, 255, 255))
     draw = ImageDraw.Draw(img)
-    draw.text((0, 3),val,(0,0,0),font=f)
-    img =  img.resize((23,70))
+    draw.text((0, 3), val, (0, 0, 0), font=f)
+    img = img.resize((23, 70))
     A = np.array(img)
-
     return A
 
-def GenCh1(f,val):
-    img=Image.new("RGB", (23,70),(255,255,255))
+def GenCh1(f, val):
+    img = Image.new("RGB", (23, 70), (255, 255, 255))
     draw = ImageDraw.Draw(img)
-    # draw.text((0, 2),val.decode('utf-8'),(0,0,0),font=f)
     draw.text((0, 2), val, (0, 0, 0), font=f)
     A = np.array(img)
     return A
 
-
-
 def r(val):
     return int(np.random.random() * val)
 
-
-
 class GenPlate:
+    def __init__(self, fontCh, fontEng):
+        self.fontC = ImageFont.truetype(fontCh, 43, 0)
+        self.fontE = ImageFont.truetype(fontEng, 60, 0)
+        self.img = np.array(Image.new("RGB", (226, 70), (255, 255, 255)))
+        self.bg = cv2.resize(cv2.imread("images/template.bmp"), (226, 70))
+        self.smu = cv2.imread("images/smu2.jpg")
 
-
-    def __init__(self,fontCh,fontEng):
-
-        self.fontC =  ImageFont.truetype(fontCh,43,0);
-        self.fontE =  ImageFont.truetype(fontEng,60,0);
-        self.img=np.array(Image.new("RGB", (226,70),(255,255,255)))
-        self.bg  = cv2.resize(cv2.imread("../images/template.bmp"),(226,70));
-        self.smu = cv2.imread("../images/smu2.jpg");
-
-
-    def draw(self,val):
-        offset= 2 ;
-
-        self.img[0:70,offset+8:offset+8+23]= GenCh(self.fontC,val[0]);
-        self.img[0:70,offset+8+23+6:offset+8+23+6+23]= GenCh1(self.fontE,val[1]);
+    def draw(self, val):
+        offset = 2
+        self.img[0:70, offset+8:offset+8+23] = GenCh(self.fontC, val[0])
+        self.img[0:70, offset+8+23+6:offset+8+23+6+23] = GenCh1(self.fontE, val[1])
         for i in range(5):
-            base = offset+8+23+6+23+17 +i*23 + i*6 ;
-            self.img[0:70, base  : base+23]= GenCh1(self.fontE,val[i+2]);
+            base = offset+8+23+6+23+17 + i*23 + i*6
+            self.img[0:70, base:base+23] = GenCh1(self.fontE, val[i+2])
         return self.img
 
-    def generate(self,text):
+    def generate(self, text):
+        fg = self.draw(text)
+        fg = cv2.bitwise_not(fg)
+        com = cv2.bitwise_or(fg, self.bg)
+        return com
 
-            fg = self.draw(text);
-            fg = cv2.bitwise_not(fg);
-            com = cv2.bitwise_or(fg,self.bg);
-
-            return com
-
-    def genPlateString(self,pos,val):
-        plateStr = "";
-        box = [0,0,0,0,0,0,0];
-        if(pos!=-1):
-            box[pos]=1;
-        for unit,cpos in zip(box,range(len(box))):
+    def genPlateString(self, pos, val):
+        plateStr = ""
+        box = [0, 0, 0, 0, 0, 0, 0]
+        if pos != -1:
+            box[pos] = 1
+        for unit, cpos in zip(box, range(len(box))):
             if unit == 1:
                 plateStr += val
             else:
                 if cpos == 0:
                     plateStr += chars[r(31)]
                 elif cpos == 1:
-                    plateStr += chars[41+r(24)]
+                    plateStr += chars[41 + r(24)]
                 else:
                     plateStr += chars[31 + r(34)]
+        return plateStr
 
-        return plateStr;
-
-    def genBatch(self, batchSize,pos,charRange, outputPath,size):
-        if (not os.path.exists(outputPath)):
-            os.mkdir(outputPath)
+    def genBatch(self, batchSize, pos, charRange, outputPath, size):
+        if not os.path.exists(outputPath):
+            os.makedirs(outputPath)  # Sử dụng os.makedirs để tạo thư mục và các thư mục cha nếu cần
+        train_path = os.path.join(outputPath, "train")  # Thêm thư mục con "train"
+        if not os.path.exists(train_path):
+            os.makedirs(train_path)  # Tạo thư mục "train" nếu chưa tồn tại
         for i in range(batchSize):
-            plateStr = G.genPlateString(-1,-1)
-
-            img =  G.generate(plateStr);
-
-            filename = os.path.join(outputPath, str(i).zfill(4) + '-' + plateStr + ".jpg")
-            cv2.imwrite(filename, img);
+            plateStr = self.genPlateString(-1, -1)  # Sử dụng self để gọi phương thức
+            img = self.generate(plateStr)
+            filename = os.path.join(train_path, str(i).zfill(4) + '-' + plateStr + ".jpg")
+            img_pil = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+            img_pil.save(filename)
 
 if __name__ == '__main__':
-
-
-    G = GenPlate("../font/platech.ttf",'../font/platechar.ttf')
-
-    G.genBatch(10,2,range(31,65),"../GeneratedPlateSamples",(272,72))
-
+    G = GenPlate("font/platech.ttf", "font/platechar.ttf")
+    G.genBatch(10, 2, range(31, 65), "GeneratedPlateSamples", (272, 72))

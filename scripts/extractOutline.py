@@ -1,30 +1,42 @@
+#coding=utf-8
 import numpy as np
-import os
-import glob
 import cv2
-
+from pathlib import Path
 import argparse
 
 def extract(data_path, write_path):
+    data_path = Path(data_path)
+    write_path = Path(write_path)
+    if not write_path.exists():
+        write_path.mkdir(parents=True, exist_ok=True)
+        print(f"Created directory: {write_path}")
 
-    path = os.path.join(data_path, '*')
-    images_path = glob.glob(path)
-
-    images_path = sorted(images_path)
+    images_path = sorted(data_path.glob('*'))
+    print(f"Found {len(images_path)} images in {data_path}")
 
     for image_path in images_path:
-        image_name = image_path.split("/")[-1]
+        print(f"Processing: {image_path}")
+        # Đọc ảnh với đường dẫn Unicode
+        image_data = np.fromfile(str(image_path), dtype=np.uint8)
+        print(f"Read {len(image_data)} bytes from {image_path}")
+        image = cv2.imdecode(image_data, cv2.IMREAD_GRAYSCALE)
+        if image is None:
+            print(f"Warning: Cannot decode image {image_path}")
+            continue
+        print(f"Image shape: {image.shape}")
 
-        #print(image_name)
-        image = cv2.imread(image_path,0)
-        final_path = os.path.join(write_path,image_name)
-        cv2.imwrite(final_path, cv2.Canny(image, 120, 120))
+        edges = cv2.Canny(image, 120, 120)
+        print(f"Edges shape: {edges.shape}")
+
+        final_path = write_path / image_path.name
+        print(f"Saving to: {final_path}")
+        cv2.imencode('.jpg', edges)[1].tofile(str(final_path))
+        print(f"Saved: {final_path}")
 
 if __name__ == '__main__':
-
     parser = argparse.ArgumentParser()
-    parser.add_argument('--A_path', default=None, help='path where you wan to store the outline image')
-    parser.add_argument('--B_path', default=None, help='path of the original image')
+    parser.add_argument('--A_path', required=True, help='path to store the outline images')
+    parser.add_argument('--B_path', required=True, help='path of the original images')
     args = parser.parse_args()
 
     extract(args.B_path, args.A_path)

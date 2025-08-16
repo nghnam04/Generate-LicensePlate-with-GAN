@@ -40,12 +40,23 @@ for sp in splits:
         else:
             name_B = name_A
         path_B = os.path.join(img_fold_B, name_B)
-        if os.path.isfile(path_A) and os.path.isfile(path_B):
-            name_AB = name_A
-            if args.use_AB:
-                name_AB = name_AB.replace('_A.', '.')  # remove _A
-            path_AB = os.path.join(img_fold_AB, name_AB)
-            im_A = cv2.imread(path_A, 1) # python2: cv2.CV_LOAD_IMAGE_COLOR; python3: cv2.IMREAD_COLOR
-            im_B = cv2.imread(path_B, 1) # python2: cv2.CV_LOAD_IMAGE_COLOR; python3: cv2.IMREAD_COLOR
-            im_AB = np.concatenate([im_A, im_B], 1)
-            cv2.imwrite(path_AB, im_AB)
+        print(f"Checking: path_A={path_A}, path_B={path_B}")
+        # Đọc ảnh với hỗ trợ Unicode
+        im_A = cv2.imdecode(np.fromfile(path_A, dtype=np.uint8), cv2.IMREAD_COLOR)
+        im_B = cv2.imdecode(np.fromfile(path_B, dtype=np.uint8), cv2.IMREAD_COLOR)
+
+        # Kiểm tra nếu không đọc được ảnh
+        if im_A is None or im_B is None:
+            print(f"Error: Cannot read {path_A} or {path_B}")
+            continue
+
+        # Ghép ảnh
+        im_AB = np.concatenate([im_A, im_B], axis=1)
+
+        # Lưu ảnh với hỗ trợ Unicode
+        name_AB = name_A
+        if args.use_AB:
+            name_AB = name_AB.replace('_A.', '.')  # remove _A
+        path_AB = os.path.join(img_fold_AB, name_AB)
+        print(f"Saving to: {path_AB}")
+        cv2.imencode('.jpg', im_AB)[1].tofile(path_AB)
